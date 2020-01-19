@@ -7,13 +7,14 @@
 #undef CSV_APPEND
 
 using namespace std;
+using namespace std::chrono;
 
 cl::Device device;
 cl::Context context;
 cl::Program program;
 cl::CommandQueue queue;
 
-const int log2res = 10;
+const int log2res = 11;
 const int64_t Resolution = (1 << log2res);
 const double Scale = 6.0;
 const int Iteration = 1000; // WTF.
@@ -22,17 +23,25 @@ const double Viewport_y = 0.0;
 
 void printDevice(int i, cl::Device &d)
 {
-	cout << "Device #" << i << endl;
-	cout << "Name: " << d.getInfo<CL_DEVICE_NAME>() << endl;
-	cout << "Type: " << d.getInfo<CL_DEVICE_TYPE>();
-	cout << " (GPU = " << CL_DEVICE_TYPE_GPU << ", CPU = " << CL_DEVICE_TYPE_CPU << ")" << endl;
+	cout << "Device #" << i << ": \"" << d.getInfo<CL_DEVICE_NAME>() << "\"" << endl;
+	cl_device_type typ = d.getInfo<CL_DEVICE_TYPE>();
+	cout << "Type ";
+	switch (typ) {
+	case CL_DEVICE_TYPE_GPU: 
+		cout << "GPU"; break;
+	case CL_DEVICE_TYPE_CPU:
+		cout << "GPU"; break;
+	default:
+		cout << typ; break;
+	}
+	cout << endl;
 	cout << "Vendor: " << d.getInfo<CL_DEVICE_VENDOR>() << endl;
 	cout << "Max Compute Units: " << d.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << endl;
 	cout << "Global Memory: " << d.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>() / (1024 * 1024) << " MByte" << endl;
 	cout << "Max Clock Frequency: " << d.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>() << endl;
 	cout << "Max Allocateable Memory: " << d.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>() / (1024 * 1024) << " MByte" << endl;
 	cout << "Local Memory: " << d.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>() / 1024 << " KByte" << endl;
-	cout << "Available: " << d.getInfo< CL_DEVICE_AVAILABLE>() << endl;
+	cout <<  (d.getInfo< CL_DEVICE_AVAILABLE>() == 1 ? "Available" : "Not available") << endl << endl;
 }
 
 void print2D(uint8_t *out, int res)
@@ -63,7 +72,7 @@ bool initOpenCL(cl::Device &device, cl::Context &context, cl::Program &prog, cl:
 
 	unsigned int deviceId = 0;
 	if (gpus.size() != 1) {
-		cout << "Device choice: ";
+		cout << "Device choice (0 - " << gpus.size() - 1 << "): ";
 		cin >> deviceId;
 	}
 	if (deviceId < 0 || deviceId >= gpus.size())
@@ -157,6 +166,7 @@ int main(int argc, char *argv[])
 	uint8_t *schlierenBufferB = new uint8_t[Resolution / 2L * Resolution / 2L];
 
 	uint8_t *buffers[] = { schlierenBufferA, schlierenBufferB };
+	auto start = steady_clock::now();
 	try {
 		calculate(schlierenBufferA, Resolution, Iteration, Scale, Viewport_x, Viewport_y);
 	} catch (cl::Error e) {
@@ -176,11 +186,8 @@ int main(int argc, char *argv[])
 #endif // CSV_EXPORT
 
 	for (int i = 0; i < log2res; i++) {
-
 		cout << "Downscale from " << res << " to " << res / 2 << "... ";
-
 		count = sumup(buffers[i % 2], res);
-
 		outfile << Scale << ";" << Iteration << ";" << res / Scale << ";" << count << ";" << log10(res / Scale) << ";" << log10(count) << endl;
 		try {
 			scaledown(buffers[i % 2], buffers[(i + 1) % 2], res);
@@ -191,22 +198,17 @@ int main(int argc, char *argv[])
 		}
 		
 		cout << "finished." << endl;
-
 		res /= 2;
 
 	}
-
-	//calculate(schlierenBufferA, 1024);
-
-	//drawPNG(schlierenBufferA, 1024, "iteratived.png");
-
 
 #ifdef CSV_EXPORT
 	outfile.close();
 #endif
 	delete[] schlierenBufferA, schlierenBufferB;
 
-	cout << "Done." << endl;
+	std::chrono::duration<float> delta = steady_clock::now() - start;
+	cout << "Done in " << delta.count() << " seconds." << endl;
 	system("PAUSE");
 	return 0;
 }
