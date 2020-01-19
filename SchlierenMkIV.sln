@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29709.97
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SchlierenMkIV", "SchlierenMkIV\SchlierenMkIV.vcxproj", "{5B725C16-1D4B-42F2-BD7B-F0D320136CB1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5B725C16-1D4B-42F2-BD7B-F0D320136CB1}.Debug|x64.ActiveCfg = Debug|x64
+		{5B725C16-1D4B-42F2-BD7B-F0D320136CB1}.Debug|x64.Build.0 = Debug|x64
+		{5B725C16-1D4B-42F2-BD7B-F0D320136CB1}.Debug|x86.ActiveCfg = Debug|Win32
+		{5B725C16-1D4B-42F2-BD7B-F0D320136CB1}.Debug|x86.Build.0 = Debug|Win32
+		{5B725C16-1D4B-42F2-BD7B-F0D320136CB1}.Release|x64.ActiveCfg = Release|x64
+		{5B725C16-1D4B-42F2-BD7B-F0D320136CB1}.Release|x64.Build.0 = Release|x64
+		{5B725C16-1D4B-42F2-BD7B-F0D320136CB1}.Release|x86.ActiveCfg = Release|Win32
+		{5B725C16-1D4B-42F2-BD7B-F0D320136CB1}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {57FF6C66-5C7D-46D0-BE68-37A2AE9F6B20}
+	EndGlobalSection
+EndGlobal
