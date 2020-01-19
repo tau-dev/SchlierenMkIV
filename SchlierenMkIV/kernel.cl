@@ -1,3 +1,6 @@
+double2 P(double2 in){
+	return (double2) (-in.x-in.y,in.x*in.y);
+}
 
 kernel void schlieren( global uchar* schlieren, const double Scale, const int Resolution, const int Iterations, const double vx, const double vy)
 {
@@ -6,53 +9,22 @@ kernel void schlieren( global uchar* schlieren, const double Scale, const int Re
 	const int i = idx % Resolution;
 	const int j = idx / Resolution;
 
-	double x = ((double)i / Resolution - 0.5) * Scale - vx;
-	double y = (0.5 - (double)j / Resolution) * Scale - vy;
+	double2 pos = (double2) (((double)i / Resolution - 0.5) * Scale - vx, (0.5 - (double)j / Resolution) * Scale - vy);
 	
-	double delta = 0.5 * (Scale / Resolution);
+	double delta = 1 * (Scale / Resolution);
 	
-	double xdx = x + delta;
-	double ydx = y;
-
-	double x_dx = x - delta;
-	double y_dx = y;
-	
-	double xdy = x;
-	double ydy = y + delta;
-
-	double x_dy = x;
-	double y_dy = y - delta;
+	double2 posdx = pos + (double2) (delta, 0);
+	double2 posdy = pos + (double2) (0, delta);	
 	
 	for (int k = 0; k < Iterations; k++) {
 
-		if (x_dx * xdx < 0.0 || x_dy * xdy < 0.0) { //VzW
+		if (sign(pos.x) != sign(posdx.x) || sign(pos.x) != sign(posdy.x)) { //VzW
 			schlieren[idx] = 1;
 			return;
 		}
-
-		double xdx_new = -xdx - ydx;
-		double ydx_new = xdx * ydx;
-
-		double x_dx_new = -x_dx - y_dx;
-		double y_dx_new = x_dx * y_dx;
-			   
-		double xdy_new = -xdy - ydy;
-		double ydy_new = xdy * ydy;
-
-		double x_dy_new = -x_dy - y_dy;
-		double y_dy_new = x_dy * y_dy;
-
-		xdx = xdx_new;
-		ydx = ydx_new;
-
-		x_dx = x_dx_new;
-		y_dx = y_dx_new;
-
-		xdy = xdy_new;
-		ydy = ydy_new;
-
-		x_dy = x_dy_new;
-		y_dy = y_dy_new;
+		pos = P(pos);
+		posdx = P(posdx);
+		posdy = P(posdy);
 	
 	}
 

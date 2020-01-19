@@ -119,8 +119,12 @@ bool initOpenCL(cl::Device &device, cl::Context &context, cl::Program &prog, cl:
 	sources.push_back(sourcecode);
 
 	prog = cl::Program(context, sources);
-	if (prog.build({ device }) != CL_SUCCESS)
+	try {
+		prog.build({ device });
+	}
+	catch (cl::Error e) {
 		throw string("OpenCL build error:\n") + prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
+	}
 
 	q = cl::CommandQueue(context, device);
 
@@ -254,6 +258,7 @@ int main(int argc, char *argv[])
 
 	int res = Resolution;
 	int count = 0;
+
 #ifdef CSV_EXPORT
 #ifndef CSV_APPEND
 	outfile << "S;k;r;N;log r;log N" << endl;
@@ -276,6 +281,13 @@ int main(int argc, char *argv[])
 		res /= 2;
 
 	}
+
+#ifdef CSV_EXPORT
+	outfile.close();
+#endif
+
+	//calculate(schlierenBufferA, 16, 1000);
+	//drawPNG(schlierenBufferA, 16, "test.png");
 
 #ifdef CSV_EXPORT
 	outfile.close();
