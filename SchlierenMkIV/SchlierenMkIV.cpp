@@ -13,10 +13,10 @@ cl::Context context;
 cl::Program program;
 cl::CommandQueue queue;
 
-const int log2res = 12;
+const int log2res = 10;
 const int64_t Resolution = (1 << log2res);
 const double Scale = 6.0;
-const int Iteration = 2670;
+const int Iteration = 2669; // WTF.
 const double Viewport_x = 0.0;
 const double Viewport_y = 0.0;
 
@@ -62,8 +62,10 @@ bool initOpenCL(cl::Device &device, cl::Context &context, cl::Program &prog, cl:
 		printDevice(i, gpus[i]);
 
 	unsigned int deviceId = 0;
-	cout << "Device choice: ";
-	cin >> deviceId;
+	if (gpus.size() != 1) {
+		cout << "Device choice: ";
+		cin >> deviceId;
+	}
 	if (deviceId < 0 || deviceId >= gpus.size())
 		throw string("Invalid device choice");
 
@@ -168,7 +170,11 @@ int main(int argc, char *argv[])
 	int res = Resolution;
 	int count = 0;
 
+#ifdef CSV_EXPORT
+#ifndef CSV_APPEND
 	outfile << "S;k;r;N;log r;log N" << endl;
+#endif // !CSV_APPEND
+#endif // CSV_EXPORT
 
 	for (int i = 0; i < log2res; i++) {
 		cout << "Downscale from " << res << " to " << res / 2 << "... ";
