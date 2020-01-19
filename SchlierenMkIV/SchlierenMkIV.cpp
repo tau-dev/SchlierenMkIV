@@ -17,7 +17,7 @@ cl::CommandQueue queue;
 const int log2res = 11;
 const int64_t Resolution = (1 << log2res);
 const double Scale = 6.0;
-const int Iteration = 2700; // WTF.
+const int Iteration = 1000; // WTF.
 const double Viewport_x = 0.0;
 const double Viewport_y = 0.0;
 
@@ -217,7 +217,6 @@ void testscaledown()
 	delete[] A, B;
 }
 
-
 int main(int argc, char *argv[])
 {
 #ifdef CSV_EXPORT
@@ -265,7 +264,14 @@ int main(int argc, char *argv[])
 		cout << "Downscale from " << res << " to " << res / 2 << "... ";
 		count = sumup(buffers[i % 2], res);
 		outfile << Scale << ";" << Iteration << ";" << res / Scale << ";" << count << ";" << log10(res / Scale) << ";" << log10(count) << endl;
-		scaledown(buffers[i % 2], buffers[(i + 1) % 2], res);
+		try {
+			scaledown(buffers[i % 2], buffers[(i + 1) % 2], res);
+		}
+		catch (cl::Error e) {
+			cout << clErrInfo(e) << endl;
+			return -1;
+		}
+		
 		cout << "finished." << endl;
 		res /= 2;
 
