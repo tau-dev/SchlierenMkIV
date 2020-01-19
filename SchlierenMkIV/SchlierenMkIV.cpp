@@ -44,15 +44,43 @@ void printDevice(int i, cl::Device &d)
 	cout <<  (d.getInfo< CL_DEVICE_AVAILABLE>() == 1 ? "Available" : "Not available") << endl << endl;
 }
 
-void print2D(uint8_t *out, int res)
+void print2D(uint8_t *buffer, int res)
 {
 	for (int i = 0; i < res; i++) {
 		for (int j = 0; j < res; j++) {
 			//cout << (int)buffers[i * Resolution + j];
-			cout << ((out[i * res + j] == 1) ? '#' : ' ') << " ";
+			cout << ((buffer[i * res + j] == 1) ? '#' : ' ') << " ";
 		}
 		cout << endl;
 	}
+}
+
+struct Color
+{
+  uint8_t R, G, B, A;
+};
+
+Color white{ 255, 255, 255, 255 };
+Color black{ 0, 0, 0, 255 };
+
+void drawPNG(uint8_t * buffer, int res, string filename, Color yes = black, Color no = white)
+{
+	vector<uint8_t> Image(sizeof(Color) * res * res);
+	Color c;
+
+	for (int i = 0; i < res * res; i++) {
+		c = (buffer[i] == 1) ? yes : no;
+
+		Image[4 * i + 0] = c.R;
+		Image[4 * i + 1] = c.G;
+		Image[4 * i + 2] = c.B;
+		Image[4 * i + 3] = c.A;
+	}
+
+	unsigned error = lodepng::encode(filename, Image, res, res);
+
+	if (error)
+		std::cout << "LodePNG error: " << error << ": " << lodepng_error_text(error) << std::endl;
 }
 
 bool initOpenCL(cl::Device &device, cl::Context &context, cl::Program &prog, cl::CommandQueue &q)
@@ -75,6 +103,9 @@ bool initOpenCL(cl::Device &device, cl::Context &context, cl::Program &prog, cl:
 		cout << "Device choice (0 - " << gpus.size() - 1 << "): ";
 		cin >> deviceId;
 	}
+	else {
+		cout << "Choosing the only GPU" << endl;
+	}
 	if (deviceId < 0 || deviceId >= gpus.size())
 		throw string("Invalid device choice");
 
@@ -95,7 +126,6 @@ bool initOpenCL(cl::Device &device, cl::Context &context, cl::Program &prog, cl:
 
 	return true;
 }
-
 
 void calculate(uint8_t *schlieren, int32_t res = 32768, int32_t iter = 1000, double scale = 6.0, double vx = 0.0, double vy = 0.0)
 {
@@ -143,6 +173,49 @@ int sumup(uint8_t *schlieren, int res)
 	return count;
 }
 
+void testscaledown()
+{
+	uint8_t * A = new uint8_t[4096 * 4096];
+	uint8_t * B = new uint8_t[8192 * 8192];
+
+	cout << "Calculating 1024 x 1024...";
+
+	try {
+		calculate(A, 1024, Iteration, Scale, Viewport_x, Viewport_y);
+	}
+	catch (cl::Error e) {
+		cout << clErrInfo(e) << endl;
+	}
+
+	cout << " finished." << endl;
+
+	cout << "Exporting PNG...";
+	drawPNG(A, 1024, "1024.png");
+	cout << " finished." << endl;
+
+	cout << "Calculating 8192 x 8192...";
+
+	try {
+		calculate(B, 8192, Iteration, Scale, Viewport_x, Viewport_y);
+	}
+	catch (cl::Error e) {
+		cout << clErrInfo(e) << endl;
+	}
+
+	cout << " finished." << endl;
+
+	cout << "Scaling down 3 times...";
+	scaledown(B, A, 8192);
+	scaledown(A, B, 4096);
+	scaledown(B, A, 2048);
+	cout << " finished." << endl;
+
+	cout << "Exporting PNG...";
+	drawPNG(A, 1024, "8192scaleddown.png");
+	cout << " finished." << endl;
+
+	delete[] A, B;
+}
 
 
 int main(int argc, char *argv[])
@@ -160,6 +233,9 @@ int main(int argc, char *argv[])
 		cout << s << endl << "Could not init OpenCL." << endl;
 		return -1;
 	}
+
+	//testscaledown();
+
 
 	cout << "Calculating null sets...";
 
@@ -179,7 +255,6 @@ int main(int argc, char *argv[])
 
 	int res = Resolution;
 	int count = 0;
-
 #ifdef CSV_EXPORT
 #ifndef CSV_APPEND
 	outfile << "S;k;r;N;log r;log N" << endl;
