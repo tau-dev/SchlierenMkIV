@@ -225,19 +225,16 @@ void testscaledown()
 	delete[] A, B;
 }
 
-void iterativestart(int tilesize = 2, int depth = 10, int iter = 1000, double scale = 6.0) {
-
-
+void iterativestart(int tilesize = 2, int depth = 10, int iter = 1000, double scale = 6.0)
+{
 	uint8_t * tileA = new uint8_t[tilesize * tilesize];
 
 	try {
-		calculate(A, 128, Iteration, Scale, Viewport_x, Viewport_y);
+		calculate(tileA, 128, Iteration, Scale, Viewport_x, Viewport_y);
 	}
 	catch (cl::Error e) {
 		cout << clErrInfo(e) << endl;
 	}
-
-
 }
 
 int iterate(int tilesize) {}
@@ -259,9 +256,6 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	//testscaledown();
-
-	
 	cout << "Calculating null sets...";
 
 	uint8_t *schlierenBufferA = new uint8_t[Resolution * Resolution];
