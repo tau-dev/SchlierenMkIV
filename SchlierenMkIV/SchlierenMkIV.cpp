@@ -44,45 +44,6 @@ void printDevice(int i, cl::Device &d)
 	cout <<  (d.getInfo< CL_DEVICE_AVAILABLE>() == 1 ? "Available" : "Not available") << endl << endl;
 }
 
-void print2D(uint8_t *buffer, int res)
-{
-	for (int i = 0; i < res; i++) {
-		for (int j = 0; j < res; j++) {
-			//cout << (int)buffers[i * Resolution + j];
-			cout << ((buffer[i * res + j] == 1) ? '#' : ' ') << " ";
-		}
-		cout << endl;
-	}
-}
-
-struct Color
-{
-  uint8_t R, G, B, A;
-};
-
-Color white{ 255, 255, 255, 255 };
-Color black{ 0, 0, 0, 255 };
-
-void drawPNG(uint8_t * buffer, int res, string filename, Color yes = black, Color no = white)
-{
-	vector<uint8_t> Image(sizeof(Color) * res * res);
-	Color c;
-
-	for (int i = 0; i < res * res; i++) {
-		c = (buffer[i] == 1) ? yes : no;
-
-		Image[4 * i + 0] = c.R;
-		Image[4 * i + 1] = c.G;
-		Image[4 * i + 2] = c.B;
-		Image[4 * i + 3] = c.A;
-	}
-
-	unsigned error = lodepng::encode(filename, Image, res, res);
-
-	if (error)
-		std::cout << "LodePNG error: " << error << ": " << lodepng_error_text(error) << std::endl;
-}
-
 bool initOpenCL(cl::Device &device, cl::Context &context, cl::Program &prog, cl::CommandQueue &q)
 {
 	cl::Platform platform = cl::Platform::getDefault();
@@ -145,7 +106,7 @@ void calculate(uint8_t *schlieren, int32_t res = 32768, int32_t iter = 1000, dou
 
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(res * res), cl::NullRange);
 	queue.finish();
-	cout << " computed...";
+	//cout << " computed...";
 	queue.enqueueReadBuffer(schlierenbuffer, CL_TRUE, 0, sizeof(uint8_t) * res * res, schlieren);
 }
 
@@ -225,30 +186,71 @@ void testscaledown()
 	delete[] A, B;
 }
 
-void iterativestart(int tilesize = 2, int depth = 10, int iter = 1000, double scale = 6.0)
+int intsumup(uint16_t * sumbuffer, int res)
 {
-	uint8_t * tileA = new uint8_t[tilesize * tilesize];
+	uint32_t sum = 0;
+	for (int i = 0; i < res; i++)
+		for (int j = 0; j < res; j++)
+			if (sumbuffer[j * res + i] == 1)
+				sum += sumbuffer[j * res + i];
+	return sum;
+}
+
+int iteration(int tilesize, int depth, int iter = 1000, double scale = 6.0, double vx = 0.0, double vy = 0.0)
+{
+	cout << "Iteration " << depth << endl;
+
+	uint16_t * sumbuffer = new uint16_t[tilesize * tilesize];
+	uint8_t * tilebuffer = new uint8_t[tilesize * tilesize];
 
 	try {
-		calculate(tileA, 128, Iteration, Scale, Viewport_x, Viewport_y);
+		calculate(tilebuffer, tilesize, iter, scale, vx, vy);
+		print2D(tilebuffer, tilesize);
 	}
 	catch (cl::Error e) {
 		cout << clErrInfo(e) << endl;
 	}
-}
 
-int iterate(int tilesize) {}
+	int sum = 0;
+
+	if (depth != 0) {
+		for (int j = 0; j < tilesize; j++) {
+			for (int i = 0; i < tilesize; i++) {
+				if (tilebuffer[j * tilesize + i] == 1) {
+					cout << "Invoking new iteration from " << depth << endl;
+					double new_vx = ((double)i / (tilesize - 1) - 0.5) * scale - vx;
+					double new_vy = (0.5 - (double)j / (tilesize - 1)) * Scale - vy;
+					double new_scale = scale / tilesize;
+					sumbuffer[j * tilesize + i] = iteration(tilesize, depth - 1, iter, new_scale, new_vx, new_vy);
+					
+				}
+			}
+		}
+		sum = intsumup(sumbuffer, tilesize);
+
+	}
+	else {
+		cout << "Endknoten" << endl;
+		sum = sumup(tilebuffer, tilesize);
+	}
+
+
+	delete[] sumbuffer;
+	delete[] tilebuffer;
+
+	return sum;
+}
 
 
 int main(int argc, char *argv[])
 {
-#ifdef CSV_EXPORT
-#ifdef CSV_APPEND
-	ofstream outfile("dim.csv", ios::out | ios::app);
-#else
-	ofstream outfile("dim.csv", ios::out);
-#endif
-#endif
+//#ifdef CSV_EXPORT
+//#ifdef CSV_APPEND
+//	ofstream outfile("dim.csv", ios::out | ios::app);
+//#else
+//	ofstream outfile("dim.csv", ios::out);
+//#endif
+//#endif
 	try {
 		initOpenCL(device, context, program, queue);
 	} catch (string s) {
@@ -256,13 +258,18 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	auto start = steady_clock::now();
+
+	/*
+	testscaledown();
+
+	
 	cout << "Calculating null sets...";
 
 	uint8_t *schlierenBufferA = new uint8_t[Resolution * Resolution];
 	uint8_t *schlierenBufferB = new uint8_t[Resolution / 2L * Resolution / 2L];
 
 	uint8_t *buffers[] = { schlierenBufferA, schlierenBufferB };
-	auto start = steady_clock::now();
 	try {
 		calculate(schlierenBufferA, Resolution, Iteration, Scale, Viewport_x, Viewport_y);
 	} catch (cl::Error e) {
@@ -309,9 +316,13 @@ int main(int argc, char *argv[])
 	outfile.close();
 #endif
 	delete[] schlierenBufferA, schlierenBufferB;
+	*/
+
+	iteration(2, 1, 10);
 
 	std::chrono::duration<float> delta = steady_clock::now() - start;
 	cout << "Done in " << delta.count() << " seconds." << endl;
+
 	system("PAUSE");
 	return 0;
 }
