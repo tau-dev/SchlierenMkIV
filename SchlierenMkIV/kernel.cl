@@ -9,7 +9,7 @@ kernel void schlieren( global uchar* schlieren, const double Scale, const int Re
 	const int i = idx % Resolution;
 	const int j = idx / Resolution;
 
-	double2 pos = (double2) (((double)i / Resolution - 0.5) * Scale - vx, (0.5 - (double)j / Resolution) * Scale - vy);
+	double2 pos = (double2) (((double)i / (Resolution-1) - 0.5) * Scale - vx, (0.5 - (double)j / (Resolution-1)) * Scale - vy);
 	
 	double delta = 1 * (Scale / Resolution);
 	
