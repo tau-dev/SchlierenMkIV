@@ -258,8 +258,8 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	const int TileSize = 16;
-	const int Depth = 2;
+	const int TileSize = 256;
+	const int Depth = 1;
 
 	cout << iteration(TileSize, Depth, 1000) << " | Auflösung = " << pow(TileSize, Depth + 1) << endl;
 
