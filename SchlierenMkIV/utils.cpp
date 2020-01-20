@@ -78,3 +78,34 @@ string clErrInfo(cl::Error e)
 {
 	return "OpenCL error " + to_string(e.err()) + ": " + lookupClError(e.err());
 }
+
+
+void print2D(uint8_t *buffer, int res)
+{
+	for (int i = 0; i < res; i++) {
+		for (int j = 0; j < res; j++) {
+			cout << ((buffer[i * res + j] == 1) ? '#' : ' ') << " ";
+		}
+		cout << endl;
+	}
+}
+
+void drawPNG(uint8_t *buffer, int res, string filename, Color yes, Color no)
+{
+	vector<uint8_t> Image(sizeof(Color) * res * res);
+	Color c;
+
+	for (int i = 0; i < res * res; i++) {
+		c = (buffer[i] == 1) ? yes : no;
+
+		Image[4 * i + 0] = c.R;
+		Image[4 * i + 1] = c.G;
+		Image[4 * i + 2] = c.B;
+		Image[4 * i + 3] = c.A;
+	}
+
+	unsigned error = lodepng::encode(filename, Image, res, res);
+
+	if (error)
+		std::cout << "LodePNG error: " << error << ": " << lodepng_error_text(error) << std::endl;
+}
