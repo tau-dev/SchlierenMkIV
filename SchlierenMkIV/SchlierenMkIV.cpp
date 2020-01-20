@@ -286,8 +286,8 @@ int main(int argc, char *argv[])
 	outfile.close();
 #endif
 
-	//calculate(schlierenBufferA, 16, 1000);
-	//drawPNG(schlierenBufferA, 16, "test.png");
+	calculate(schlierenBufferA, 16, 10);
+	drawPNG(schlierenBufferA, 16, "test.png");
 
 #ifdef CSV_EXPORT
 	outfile.close();
