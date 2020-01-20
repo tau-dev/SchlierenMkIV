@@ -79,7 +79,7 @@ string clErrInfo(cl::Error e)
 	return "OpenCL error " + to_string(e.err()) + ": " + lookupClError(e.err());
 }
 
-void drawPNG(uint8_t *buffer, int res, string filename, Color yes = black, Color no = white)
+void drawPNG(uint8_t *buffer, int res, string filename, Color yes, Color no)
 {
 	vector<uint8_t> Image(sizeof(Color) * res * res);
 	Color c;
