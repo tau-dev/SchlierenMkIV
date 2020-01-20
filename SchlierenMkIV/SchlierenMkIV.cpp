@@ -179,13 +179,13 @@ int sumup(uint8_t *schlieren, int res)
 
 void testscaledown()
 {
-	uint8_t * A = new uint8_t[4096 * 4096];
+	uint8_t * A = new uint8_t[4096* 4096];
 	uint8_t * B = new uint8_t[8192 * 8192];
 
-	cout << "Calculating 1024 x 1024...";
+	cout << "Calculating 128 x 128...";
 
 	try {
-		calculate(A, 1024, Iteration, Scale, Viewport_x, Viewport_y);
+		calculate(A, 128, Iteration, Scale, Viewport_x, Viewport_y);
 	}
 	catch (cl::Error e) {
 		cout << clErrInfo(e) << endl;
@@ -194,7 +194,7 @@ void testscaledown()
 	cout << " finished." << endl;
 
 	cout << "Exporting PNG...";
-	drawPNG(A, 1024, "1024.png");
+	drawPNG(A, 128, "128.png");
 	cout << " finished." << endl;
 
 	cout << "Calculating 8192 x 8192...";
@@ -208,14 +208,18 @@ void testscaledown()
 
 	cout << " finished." << endl;
 
-	cout << "Scaling down 3 times...";
+	cout << "Scaling down n times...";
 	scaledown(B, A, 8192);
 	scaledown(A, B, 4096);
 	scaledown(B, A, 2048);
+	scaledown(A, B, 1024);
+	scaledown(B, A, 512);
+	scaledown(A, B, 256);
+
 	cout << " finished." << endl;
 
 	cout << "Exporting PNG...";
-	drawPNG(A, 1024, "8192scaleddown.png");
+	drawPNG(B, 128, "8192scaleddown.png");
 	cout << " finished." << endl;
 
 	delete[] A, B;
@@ -237,65 +241,65 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	//testscaledown();
+	testscaledown();
 
-
-	cout << "Calculating null sets...";
-
-	uint8_t *schlierenBufferA = new uint8_t[Resolution * Resolution];
-	uint8_t *schlierenBufferB = new uint8_t[Resolution / 2L * Resolution / 2L];
-
-	uint8_t *buffers[] = { schlierenBufferA, schlierenBufferB };
-	auto start = steady_clock::now();
-	try {
-		calculate(schlierenBufferA, Resolution, Iteration, Scale, Viewport_x, Viewport_y);
-	} catch (cl::Error e) {
-		cout << clErrInfo(e) << endl;
-		return -1;
-	}
-
-	cout << " finished." << endl;
-
-	int res = Resolution;
-	int count = 0;
-
-#ifdef CSV_EXPORT
-#ifndef CSV_APPEND
-	outfile << "S;k;r;N;log r;log N" << endl;
-#endif // !CSV_APPEND
-#endif // CSV_EXPORT
-
-	for (int i = 0; i < log2res; i++) {
-		cout << "Downscale from " << res << " to " << res / 2 << "... ";
-		count = sumup(buffers[i % 2], res);
-		outfile << Scale << ";" << Iteration << ";" << res / Scale << ";" << count << ";" << log10(res / Scale) << ";" << log10(count) << endl;
-		try {
-			scaledown(buffers[i % 2], buffers[(i + 1) % 2], res);
-		}
-		catch (cl::Error e) {
-			cout << clErrInfo(e) << endl;
-			return -1;
-		}
-		
-		cout << "finished." << endl;
-		res /= 2;
-
-	}
-
-#ifdef CSV_EXPORT
-	outfile.close();
-#endif
-
-	//calculate(schlierenBufferA, 16, 1000);
-	//drawPNG(schlierenBufferA, 16, "test.png");
-
-#ifdef CSV_EXPORT
-	outfile.close();
-#endif
-	delete[] schlierenBufferA, schlierenBufferB;
-
-	std::chrono::duration<float> delta = steady_clock::now() - start;
-	cout << "Done in " << delta.count() << " seconds." << endl;
+//	
+//	cout << "Calculating null sets...";
+//
+//	uint8_t *schlierenBufferA = new uint8_t[Resolution * Resolution];
+//	uint8_t *schlierenBufferB = new uint8_t[Resolution / 2L * Resolution / 2L];
+//
+//	uint8_t *buffers[] = { schlierenBufferA, schlierenBufferB };
+//	auto start = steady_clock::now();
+//	try {
+//		calculate(schlierenBufferA, Resolution, Iteration, Scale, Viewport_x, Viewport_y);
+//	} catch (cl::Error e) {
+//		cout << clErrInfo(e) << endl;
+//		return -1;
+//	}
+//
+//	cout << " finished." << endl;
+//
+//	int res = Resolution;
+//	int count = 0;
+//
+//#ifdef CSV_EXPORT
+//#ifndef CSV_APPEND
+//	outfile << "S;k;r;N;log r;log N" << endl;
+//#endif // !CSV_APPEND
+//#endif // CSV_EXPORT
+//
+//	for (int i = 0; i < log2res; i++) {
+//		cout << "Downscale from " << res << " to " << res / 2 << "... ";
+//		count = sumup(buffers[i % 2], res);
+//		outfile << Scale << ";" << Iteration << ";" << res / Scale << ";" << count << ";" << log10(res / Scale) << ";" << log10(count) << endl;
+//		try {
+//			scaledown(buffers[i % 2], buffers[(i + 1) % 2], res);
+//		}
+//		catch (cl::Error e) {
+//			cout << clErrInfo(e) << endl;
+//			return -1;
+//		}
+//		
+//		cout << "finished." << endl;
+//		res /= 2;
+//
+//	}
+//
+//#ifdef CSV_EXPORT
+//	outfile.close();
+//#endif
+//
+//	//calculate(schlierenBufferA, 16, 10);
+//	//drawPNG(schlierenBufferA, 16, "test.png");
+//
+//#ifdef CSV_EXPORT
+//	outfile.close();
+//#endif
+//	delete[] schlierenBufferA, schlierenBufferB;
+//
+//	std::chrono::duration<float> delta = steady_clock::now() - start;
+//	cout << "Done in " << delta.count() << " seconds." << endl;
 	system("PAUSE");
 	return 0;
 }

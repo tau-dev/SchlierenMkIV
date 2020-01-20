@@ -8,28 +8,67 @@ kernel void schlieren( global uchar* schlieren, const double Scale, const int Re
 
 	const int i = idx % Resolution;
 	const int j = idx / Resolution;
+			
+	double delta = 0.5 * (Scale / Resolution);
 
-	double2 pos = (double2) (((double)i / (Resolution-1) - 0.5) * Scale - vx, (0.5 - (double)j / (Resolution-1)) * Scale - vy);
-	
-	double delta = 1 * (Scale / Resolution);
+	double2 pos = (double2) (((double)i / (Resolution - 1) - 0.5) * Scale - vx, (0.5 - (double)j / (Resolution-1)) * Scale - vy);
 	
 	double2 posdx = pos + (double2) (delta, 0);
 	double2 posdy = pos + (double2) (0, delta);	
+	double2 pos_dx = pos + (double2) (-delta, 0);
+	double2 pos_dy = pos + (double2) (0, -delta);	
 	
 	for (int k = 0; k < Iterations; k++) {
 
-		if (sign(pos.x) != sign(posdx.x) || sign(pos.x) != sign(posdy.x)) { //VzW
+		if (sign(pos_dx.x) != sign(posdx.x) || sign(pos_dy.x) != sign(posdy.x)) { //VzW
 			schlieren[idx] = 1;
 			return;
 		}
-		pos = P(pos);
+
 		posdx = P(posdx);
 		posdy = P(posdy);
+		pos_dx = P(pos_dx);
+		pos_dy = P(pos_dy);
+	
+	}
+
+
+	schlieren[idx] = 0;
+}
+
+kernel void schlierentile( global uchar* schlieren, const double Scale, const int Resolution, const int Iterations, const double centered_vx, const double centered_vy)
+{
+	const int idx = get_global_id(0);
+
+	const int i = idx % Resolution;
+	const int j = idx / Resolution;
+
+	double delta = 0.5 * (Scale / Resolution);
+	
+	double2 pos = (double2) (((double)i / (Resolution - 1) - 0.5) * Scale - centered_vx, (0.5 - (double)j / (Resolution-1)) * Scale - centered_vy);
+	
+	double2 posdx = pos + (double2) (delta, 0);
+	double2 posdy = pos + (double2) (0, delta);	
+	double2 pos_dx = pos + (double2) (-delta, 0);
+	double2 pos_dy = pos + (double2) (0, -delta);	
+	
+	for (int k = 0; k < Iterations; k++) {
+
+		if (sign(pos_dx.x) != sign(posdx.x) || sign(pos_dy.x) != sign(posdy.x)) { //VzW
+			schlieren[idx] = 1;
+			return;
+		}
+
+		posdx = P(posdx);
+		posdy = P(posdy);
+		pos_dx = P(pos_dx);
+		pos_dy = P(pos_dy);
 	
 	}
 
 	schlieren[idx] = 0;
 }
+
 
 
 kernel void scaledown(global uchar * oldbuffer, global uchar * newbuffer, const int oldres){ 
