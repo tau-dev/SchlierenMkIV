@@ -225,58 +225,56 @@ void testscaledown()
 	delete[] A, B;
 }
 
-int intsumup(uint16_t * sumbuffer, int res) {
+uint32_t intsumup(uint32_t * sumbuffer, int res) {
 
 	uint32_t sum = 0;
 	for (int i = 0; i < res; i++)
 		for (int j = 0; j < res; j++)
-			if (sumbuffer[j * res + i] == 1)
 				sum += sumbuffer[j * res + i];
 	return sum;
 
 }
 
-int iteration(int tilesize, int depth, int iter = 1000, double scale = 6.0, double vx = 0.0, double vy = 0.0) {
-
-	cout << "Iteration " << depth << endl;
-
-	uint16_t * sumbuffer = new uint16_t[tilesize * tilesize];
+int iteration(int tilesize, int depth, int iter = 1000, double scale = 6.0, double vx = 0.0, double vy = 0.0)
+{
+	int sum = 0;
 	uint8_t * tilebuffer = new uint8_t[tilesize * tilesize];
 
 	try {
 		calculate(tilebuffer, tilesize, iter, scale, vx, vy);
-		print2D(tilebuffer, tilesize);
+		//print2D(tilebuffer, tilesize);
 	}
 	catch (cl::Error e) {
 		cout << clErrInfo(e) << endl;
 	}
 
-	int sum = 0;
-
 	if (depth != 0) {
-
 		for (int j = 0; j < tilesize; j++) {
 			for (int i = 0; i < tilesize; i++) {
 				if (tilebuffer[j * tilesize + i] == 1) {
-					cout << "Invoking new iteration from " << depth << endl;
+					//cout << "Invoking new iteration from " << depth << endl;
 					double new_vx = ((double)i / (tilesize - 1) - 0.5) * scale - vx;
-					double new_vy = (0.5 - (double)j / (tilesize - 1)) * Scale - vy;
+					double new_vy = (0.5 - (double)j / (tilesize - 1)) * scale - vy;
 					double new_scale = scale / tilesize;
-					sumbuffer[j * tilesize + i] = iteration(tilesize, depth - 1, iter, new_scale, new_vx, new_vy);
-					
+					sum += iteration(tilesize, depth - 1, iter, new_scale, new_vx, new_vy);
 				}
 			}
 		}
-		sum = intsumup(sumbuffer, tilesize);
+
+		/*for (int j = 0; j < tilesize; j++) {
+			for (int i = 0; i < tilesize; i++) {
+				cout << sumbuffer[j * tilesize + i] << ";";
+			}
+			cout << endl;
+		}*/
+		//cout << "Sumbuffer, Summe: " << sum << endl;
 
 	}
 	else {
-		cout << "Endknoten" << endl;
 		sum = sumup(tilebuffer, tilesize);
+		//cout << "Endknoten, Summe: " << sum << endl;
 	}
 
-
-	delete[] sumbuffer;
 	delete[] tilebuffer;
 
 	return sum;	
@@ -298,6 +296,11 @@ int main(int argc, char *argv[])
 		cout << s << endl << "Could not init OpenCL." << endl;
 		return -1;
 	}
+
+	const int TileSize = 16;
+	const int Depth = 2;
+
+	cout << iteration(TileSize, Depth, 1000) << " | Auflösung = " << pow(TileSize, Depth + 1) << endl;
 
 //	//testscaledown();
 //
@@ -359,7 +362,7 @@ int main(int argc, char *argv[])
 //	std::chrono::duration<float> delta = steady_clock::now() - start;
 	//cout << "Done in " << delta.count() << " seconds." << endl;
 
-	iteration(2, 1, 10);
+
 
 	system("PAUSE");
 	return 0;
