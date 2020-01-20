@@ -44,45 +44,6 @@ void printDevice(int i, cl::Device &d)
 	cout <<  (d.getInfo< CL_DEVICE_AVAILABLE>() == 1 ? "Available" : "Not available") << endl << endl;
 }
 
-void print2D(uint8_t *buffer, int res)
-{
-	for (int i = 0; i < res; i++) {
-		for (int j = 0; j < res; j++) {
-			//cout << (int)buffers[i * Resolution + j];
-			cout << ((buffer[i * res + j] == 1) ? '#' : ' ') << " ";
-		}
-		cout << endl;
-	}
-}
-
-struct Color
-{
-  uint8_t R, G, B, A;
-};
-
-Color white{ 255, 255, 255, 255 };
-Color black{ 0, 0, 0, 255 };
-
-void drawPNG(uint8_t * buffer, int res, string filename, Color yes = black, Color no = white)
-{
-	vector<uint8_t> Image(sizeof(Color) * res * res);
-	Color c;
-
-	for (int i = 0; i < res * res; i++) {
-		c = (buffer[i] == 1) ? yes : no;
-
-		Image[4 * i + 0] = c.R;
-		Image[4 * i + 1] = c.G;
-		Image[4 * i + 2] = c.B;
-		Image[4 * i + 3] = c.A;
-	}
-
-	unsigned error = lodepng::encode(filename, Image, res, res);
-
-	if (error)
-		std::cout << "LodePNG error: " << error << ": " << lodepng_error_text(error) << std::endl;
-}
-
 bool initOpenCL(cl::Device &device, cl::Context &context, cl::Program &prog, cl::CommandQueue &q)
 {
 	cl::Platform platform = cl::Platform::getDefault();
@@ -230,9 +191,9 @@ uint32_t intsumup(uint32_t * sumbuffer, int res) {
 	uint32_t sum = 0;
 	for (int i = 0; i < res; i++)
 		for (int j = 0; j < res; j++)
+			if (sumbuffer[j * res + i] == 1)
 				sum += sumbuffer[j * res + i];
 	return sum;
-
 }
 
 int iteration(int tilesize, int depth, int iter = 1000, double scale = 6.0, double vx = 0.0, double vy = 0.0)
@@ -277,9 +238,9 @@ int iteration(int tilesize, int depth, int iter = 1000, double scale = 6.0, doub
 
 	delete[] tilebuffer;
 
-	return sum;	
-
+	return sum;
 }
+
 
 int main(int argc, char *argv[])
 {
@@ -363,6 +324,9 @@ int main(int argc, char *argv[])
 	//cout << "Done in " << delta.count() << " seconds." << endl;
 
 
+
+	std::chrono::duration<float> delta = steady_clock::now() - start;
+	cout << "Done in " << delta.count() << " seconds." << endl;
 
 	system("PAUSE");
 	return 0;
