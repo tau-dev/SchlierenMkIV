@@ -62,6 +62,7 @@ kernel void sum(const int res, global int *oldbuffer, global int *newbuffer){
 
 	newbuffer[idx] = oldbuffer[base_] + oldbuffer[base_+1] + oldbuffer[base_+res] + oldbuffer[base_+res+1];
 }
+
 kernel void firstsum(const int res, global uchar *oldbuffer, global int *newbuffer){ 
 	const int idx = get_global_id(0);
 	int newres = res / 2;

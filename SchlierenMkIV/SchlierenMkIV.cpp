@@ -18,9 +18,9 @@ cl::CommandQueue queue;
 //const int64_t Resolution = (1 << log2res);
 
 const int TileResolution = 1024;
-const int TileCount = 1;
+const int TileCount = 100;
 const double Scale = 6.0;
-const int Iteration = 100;
+const int Iteration = 10000;
 const double Viewport_x = 0.0;
 const double Viewport_y = 0.0;
 
@@ -234,6 +234,17 @@ int sumup(uint8_t* schlieren, int res)
 	uint32_t result = -1;
 	queue.enqueueReadBuffer(*from, CL_TRUE, 0, sizeof(uint32_t) * 1, &result);
 	return result;
+}
+
+
+int cpu_sumup(uint8_t* schlieren, int res)
+{
+	int sum = 0;
+	for (int i = 0; i < res; i++)
+		for (int j = 0; j < res; j++)
+			sum += schlieren[j * res + i];
+
+	return sum;
 }
 
 void testscaledown()
