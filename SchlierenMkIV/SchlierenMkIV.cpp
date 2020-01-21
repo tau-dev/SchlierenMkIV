@@ -17,10 +17,10 @@ cl::CommandQueue queue;
 //const int log2res = 7;
 //const int64_t Resolution = (1 << log2res);
 
-const int TileResolution = 1024;
-const int TileCount = 4;
+const int TileResolution = 8192;
+const int TileCount = 8;
 const double Scale = 6.0;
-const int Iteration = 1000;
+const int Iteration = 10000;
 const double Viewport_x = 0.0;
 const double Viewport_y = 0.0;
 
@@ -45,6 +45,13 @@ void printDevice(int i, cl::Device& d)
 	cout << "Max Allocateable Memory: " << d.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>() / (1024 * 1024) << " MByte" << endl;
 	cout << "Local Memory: " << d.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>() / 1024 << " KByte" << endl;
 	cout << (d.getInfo< CL_DEVICE_AVAILABLE>() == 1 ? "Available" : "Not available") << endl << endl;
+}
+
+void printPlatform(int i, cl::Platform& p)
+{
+	cout << "Platform #" << i << ": \"" << p.getInfo<CL_PLATFORM_NAME>() << "\"" << endl;
+	cout << "Platform Vendor: " << p.getInfo<CL_PLATFORM_VENDOR>() << endl;
+
 }
 
 void print2D(uint8_t* buffer, int res)
@@ -88,7 +95,29 @@ void drawPNG(uint8_t* buffer, int res, string filename, Color yes = black, Color
 
 bool initOpenCL(cl::Device& device, cl::Context& context, cl::Program& prog, cl::CommandQueue& q)
 {
-	cl::Platform platform = cl::Platform::getDefault();
+
+	vector<cl::Platform> platforms;
+	cl::Platform::get(&platforms);
+
+	int platId = 0;
+
+	if (platforms.size() == 0)
+		throw string("No devices found");
+	for (int i = 0; i < platforms.size(); i++)
+		printPlatform(i, platforms[i]);
+
+	if (platforms.size() != 1) {
+		cout << "Platform choice (0 - " << platforms.size() - 1 << "): ";
+		cin >> platId;
+	}
+	else {
+		cout << "Choosing the only platform" << endl;
+	}
+	if (platId < 0 || platId >= platforms.size())
+		throw string("Invalid platform choice");
+
+	cl::Platform platform = platforms[platId];
+
 	cout << "OpenCL version: " << platform.getInfo<CL_PLATFORM_VERSION>() << endl;
 
 	if (platform() == 0)
@@ -114,8 +143,10 @@ bool initOpenCL(cl::Device& device, cl::Context& context, cl::Program& prog, cl:
 
 	device = gpus[deviceId];
 
+	cout << "Creating context... " << endl;
 	context = cl::Context({ device });
 
+	cout << "Compiling sources... " << endl;
 	cl::Program::Sources sources;
 	ifstream sourcefile("kernel.cl");
 	string sourcecode(istreambuf_iterator<char>(sourcefile), (istreambuf_iterator<char>()));
@@ -128,8 +159,10 @@ bool initOpenCL(cl::Device& device, cl::Context& context, cl::Program& prog, cl:
 	catch (cl::Error e) {
 		throw string("OpenCL build error:\n") + prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
 	}
-
+	cout << "Creating command queue" << endl;
 	q = cl::CommandQueue(context, device);
+
+	cout << "InitOpenCL finished!" << endl;
 
 	return true;
 }
@@ -304,6 +337,7 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+	cout << "Starting computation" << endl;
 
 	/*vector<uint32_t> Result = tiling<TileResolution>(TileCount, Iteration, Scale, Viewport_x, Viewport_y);*/
 	vector<uint32_t> Result = tiling<TileResolution>(TileCount, Iteration, Scale, Viewport_x, Viewport_y);
