@@ -17,10 +17,10 @@ cl::CommandQueue queue;
 //const int log2res = 7;
 //const int64_t Resolution = (1 << log2res);
 
-const int TileResolution = 8192;
-const int TileCount = 8;
+const int TileResolution = 1024;
+const int TileCount = 1;
 const double Scale = 6.0;
-const int Iteration = 10000;
+const int Iteration = 100;
 const double Viewport_x = 0.0;
 const double Viewport_y = 0.0;
 
@@ -204,12 +204,36 @@ void scaledown(uint8_t* schlieren_old, uint8_t* schlieren_new, int oldres)
 
 int sumup(uint8_t* schlieren, int res)
 {
-	int count = 0;
-	for (int i = 0; i < res; i++)
-		for (int j = 0; j < res; j++)
-			if (schlieren[j * res + i] == 1)
-				count++;
-	return count;
+	cl::Kernel firstredux = cl::Kernel(program, "firstsum");
+	cl::Kernel redux = cl::Kernel(program, "sum");
+
+	cl::Buffer origin(context, CL_MEM_READ_WRITE, sizeof(uint8_t) * res * res);
+	cl::Buffer buf1(context, CL_MEM_READ_WRITE, sizeof(uint32_t) * res/2 * res/2);
+	cl::Buffer buf2(context, CL_MEM_READ_WRITE, sizeof(uint32_t) * res/4 * res/4);
+
+	queue.enqueueWriteBuffer(origin, CL_FALSE, 0, sizeof(uint8_t) * res * res, schlieren);
+
+	firstredux.setArg(0, res);
+	firstredux.setArg(1, origin);
+	firstredux.setArg(2, buf1);
+	queue.enqueueNDRangeKernel(firstredux, cl::NullRange, cl::NDRange(res/2 * res/2));
+	queue.finish();
+
+	cl::Buffer *from = &buf1, *to = &buf2;
+
+	res /= 2;
+	for (; res > 1; res = res/2) {
+		redux.setArg(0, res);
+		redux.setArg(1, *from);
+		redux.setArg(2, *to);
+		queue.enqueueNDRangeKernel(redux, cl::NullRange, cl::NDRange(res/2 * res/2));
+		queue.finish();
+		swap(from, to);
+	}
+
+	uint32_t result = -1;
+	queue.enqueueReadBuffer(*from, CL_TRUE, 0, sizeof(uint32_t) * 1, &result);
+	return result;
 }
 
 void testscaledown()
@@ -339,7 +363,6 @@ int main(int argc, char* argv[])
 
 	cout << "Starting computation" << endl;
 
-	/*vector<uint32_t> Result = tiling<TileResolution>(TileCount, Iteration, Scale, Viewport_x, Viewport_y);*/
 	vector<uint32_t> Result = tiling<TileResolution>(TileCount, Iteration, Scale, Viewport_x, Viewport_y);
 
 
@@ -365,69 +388,6 @@ int main(int argc, char* argv[])
 	outfile.close();
 #endif
 
-	//testscaledown();
-
-	/*
-	cout << "Calculating null sets...";
-
-	uint8_t* schlierenBufferA = new uint8_t[Resolution * Resolution];
-	uint8_t* schlierenBufferB = new uint8_t[Resolution / 2L * Resolution / 2L];
-
-	uint8_t* buffers[] = { schlierenBufferA, schlierenBufferB };
-	auto start = steady_clock::now();
-	try {
-		calculate(schlierenBufferA, Resolution, Iteration, Scale, Viewport_x, Viewport_y);
-	}
-	catch (cl::Error e) {
-		cout << clErrInfo(e) << endl;
-		return -1;
-	}
-
-	cout << " finished." << endl;
-
-	int res = Resolution;
-	int count = 0;
-
-#ifdef CSV_EXPORT
-#ifndef CSV_APPEND
-	outfile << "S;k;r;N;log r;log N" << endl;
-#endif // !CSV_APPEND
-#endif // CSV_EXPORT
-
-	for (int i = 0; i < log2res; i++) {
-		cout << "Downscale from " << res << " to " << res / 2 << "... ";
-		count = sumup(buffers[i % 2], res);
-		outfile << Scale << ";" << Iteration << ";" << res / Scale << ";" << count << ";" << log10(res / Scale) << ";" << log10(count) << endl;
-		try {
-			scaledown(buffers[i % 2], buffers[(i + 1) % 2], res);
-		}
-		catch (cl::Error e) {
-			cout << clErrInfo(e) << endl;
-			return -1;
-		}
-
-		//drawPNG(buffers[i % 2], res, to_string(res) + ".png");
-
-		cout << "finished." << endl;
-		res /= 2;
-
-	}
-
-#ifdef CSV_EXPORT
-	outfile.close();
-#endif
-
-	//calculate(schlierenBufferA, 16, 10);
-	//drawPNG(schlierenBufferA, 16, "test.png");
-
-#ifdef CSV_EXPORT
-	outfile.close();
-#endif
-	delete[] schlierenBufferA, schlierenBufferB;
-
-	std::chrono::duration<float> delta = steady_clock::now() - start;
-	cout << "Done in " << delta.count() << " seconds." << endl;
-	*/
 	system("PAUSE");
 	return 0;
 }
