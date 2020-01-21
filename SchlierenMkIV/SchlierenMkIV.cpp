@@ -18,9 +18,9 @@ cl::CommandQueue queue;
 //const int64_t Resolution = (1 << log2res);
 
 const int TileResolution = 1024;
-const int TileCount = 100;
+const int TileCount = 64;
 const double Scale = 6.0;
-const int Iteration = 10000;
+const int Iteration = 200;
 const double Viewport_x = 0.0;
 const double Viewport_y = 0.0;
 
@@ -252,20 +252,20 @@ void testscaledown()
 	uint8_t* A = new uint8_t[4096 * 4096];
 	uint8_t* B = new uint8_t[8192 * 8192];
 
-	cout << "Calculating 128 x 128...";
+	cout << "Calculating 1024 x 1024...";
 
 	try {
-		calculate(A, 128, Iteration, Scale, Viewport_x, Viewport_y);
+		calculate(A, 1024, Iteration, Scale, Viewport_x, Viewport_y);
 	}
 	catch (cl::Error e) {
 		cout << clErrInfo(e) << endl;
 	}
 
-	cout << " finished." << endl;
+	cout << " finished: " << sumup(A, 1024) << endl;
 
-	cout << "Exporting PNG...";
-	drawPNG(A, 128, "128.png");
-	cout << " finished." << endl;
+	//cout << "Exporting PNG...";
+	//drawPNG(A, 128, "128.png");
+	//cout << " finished." << endl;
 
 	cout << "Calculating 8192 x 8192...";
 
@@ -276,21 +276,18 @@ void testscaledown()
 		cout << clErrInfo(e) << endl;
 	}
 
-	cout << " finished." << endl;
+	cout << " finished: " << endl;
 
 	cout << "Scaling down n times...";
 	scaledown(B, A, 8192);
 	scaledown(A, B, 4096);
 	scaledown(B, A, 2048);
-	scaledown(A, B, 1024);
-	scaledown(B, A, 512);
-	scaledown(A, B, 256);
 
-	cout << " finished." << endl;
+	cout << "Sumup: " << sumup(A, 1024) << endl;
 
-	cout << "Exporting PNG...";
-	drawPNG(B, 128, "8192scaleddown.png");
-	cout << " finished." << endl;
+	//cout << "Exporting PNG...";
+	//drawPNG(B, 128, "8192scaleddown.png");
+	//cout << " finished." << endl;
 
 	delete[] A, B;
 }
@@ -372,32 +369,34 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+
 	cout << "Starting computation" << endl;
-
-	vector<uint32_t> Result = tiling<TileResolution>(TileCount, Iteration, Scale, Viewport_x, Viewport_y);
-
-
-#ifdef CSV_EXPORT
-#ifndef CSV_APPEND
-	outfile << "S;B;k;r;N;log r;log N" << endl;
-#endif // !CSV_APPEND
-#endif // CSV_EXPORT
-
-
-	for (int i = 0; i < Result.size(); i++) {
-		outfile << Scale << ";";
-		outfile << (TileResolution >> i) * TileCount << ";";
-		outfile << Iteration << ";";
-		outfile << (TileResolution >> i) * TileCount / Scale << ";";
-		outfile << Result[i] << ";";
-		outfile << log10((TileResolution >> i)* TileCount / Scale) << ";";
-		outfile << log10(Result[i]);
-		outfile << endl;
-
-	}
-#ifdef CSV_EXPORT
-	outfile.close();
-#endif
+	testscaledown();
+//
+//	vector<uint32_t> Result = tiling<TileResolution>(TileCount, Iteration, Scale, Viewport_x, Viewport_y);
+//
+//
+//#ifdef CSV_EXPORT
+//#ifndef CSV_APPEND
+//	outfile << "S;B;k;r;N;log r;log N" << endl;
+//#endif // !CSV_APPEND
+//#endif // CSV_EXPORT
+//
+//
+//	for (int i = 0; i < Result.size(); i++) {
+//		outfile << Scale << ";";
+//		outfile << (TileResolution >> i) * TileCount << ";";
+//		outfile << Iteration << ";";
+//		outfile << (TileResolution >> i) * TileCount / Scale << ";";
+//		outfile << Result[i] << ";";
+//		outfile << log10((TileResolution >> i)* TileCount / Scale) << ";";
+//		outfile << log10(Result[i]);
+//		outfile << endl;
+//
+//	}
+//#ifdef CSV_EXPORT
+//	outfile.close();
+//#endif
 
 	system("PAUSE");
 	return 0;
